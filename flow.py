@@ -27,6 +27,15 @@ def get_sitemap_links(limit,site):
 		# print('FLOW :: GETTING MOST RECENT SITEMAP LINKS', site)
 		return parse_sitemap(limit,site)
 
+def archive(link):
+	response = requests.get("https://web.archive.org/save/"+link['link'])
+	if response.status_code == 200:
+		print('saved: ' + link['link'])
+		link['saved'] = True
+	else:
+		link['saved'] = False
+	return link
+
 def parse_sitemap(limit,site):
 	response = make_request(site)
 	d = xmltodict.parse(response.content)
@@ -45,7 +54,7 @@ def get_articles(link):
 	links = []
 	for l in d['urlset']['url']:
 		try:
-			a = {"link":l['loc'],"date": l['lastmod']}
+			a = {"link":l['loc']}
 			links.append(a)
 		except:
 			print("issue with lastmod")
@@ -56,24 +65,26 @@ def get_comments(link):
 	site = link['link'].split('/')[2]
 	post_id = link['link'].split('-')[-1]
 	response = requests.get("https://"+site+"/ajax/comments/views/replies/"+post_id+"?startIndex=0&maxReturned=100&maxChildren=10&approvedOnly=false&cache=true&experimental=true&sorting=top")
-	
-	d = json.loads(response.text)
-	print("got blog")
-	for comment in d['data']['items']:
-		try:
-			c = comment['reply']['body'][0]['value'][0]['value'].lower()
-		except:
-			c = "uncommentable"
+	try:
+		d = json.loads(response.text)
+		print("got blog")
+		for comment in d['data']['items']:
+			try:
+				c = comment['reply']['body'][0]['value'][0]['value'].lower()
+			except:
+				c = "uncommentable"
 
-		if " ad " in c or " ads " in c or " advertis" in c or "pop ups" in c or "pop up" in c or "pop-up" in c or "pop-ups" in c or "autoplay" in c:	
-			post['comments'].append(c)
-			post['count'] = post['count'] + 1
-		
-		for child in comment["children"]['items']:
-			p = child['plaintext'].lower()
-			if " ad " in p or " ads " in p or " advertis" in p or "pop ups" in p or "pop up" in p or "pop-up" in p or "pop-ups" in p or "autoplay" in p:
-				post['comments'].append(p)
+			if " ad " in c or " ads " in c or " advertis" in c or "pop ups" in c or "pop up" in c or "pop-up" in c or "pop-ups" in c or "autoplay" in c:	
+				post['comments'].append(c)
 				post['count'] = post['count'] + 1
+			
+			for child in comment["children"]['items']:
+				p = child['plaintext'].lower()
+				if " ad " in p or " ads " in p or " advertis" in p or "pop ups" in p or "pop up" in p or "pop-up" in p or "pop-ups" in p or "autoplay" in p:
+					post['comments'].append(p)
+					post['count'] = post['count'] + 1
+	except:
+		print("error")
 	if post['count'] > 0:
 		return post
 
