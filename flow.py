@@ -33,7 +33,10 @@ def archive(link):
 		print('saved: ' + link['link'])
 		link['saved'] = True
 	else:
+		time.sleep(60)
+		print ("issue saving: " + link['link'])
 		link['saved'] = False
+
 	return link
 
 def parse_sitemap(limit,site):
